@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Sentiment Analysis Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+</head>
+<body>
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="{{ url_for('index') }}" class="logo">
+            <i class='bx bx-code-alt'></i>
+            <div class="logo-name"><span>Stat</span>ITS</div>
+        </a>
+        <ul class="side-menu">
+            <li class="{% if page == 'dashboard' %}active{% endif %}">
+                <a href="{{ url_for('index') }}"><i class='bx bxs-dashboard'></i>Dashboard</a>
+            </li>
+            <li class="{% if page == 'analytics' %}active{% endif %}">
+                <a href="{{ url_for('view_analytics') }}"><i class='bx bx-analyse'></i>Analytics</a>
+            </li>
+            <li class="{% if page == 'data_management' %}active{% endif %}">
+                <a href="{{ url_for('index', page='data_management') }}"><i class='bx bx-data'></i>Data Management</a>
+            </li>  
+            <li><a href="#"><i class='bx bx-cog'></i>Settings</a></li>
+        </ul>
+        <ul class="side-menu">
+            <li>
+                <a href="#" class="logout">
+                    <i class='bx bx-log-out-circle'></i>
+                    Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+    <!-- End of Sidebar -->
+
+    <!-- Main Content -->
+    <div class="content">
+        <nav>
+            <i class='bx bx-menu'></i>
+            <form action="#">
+                <div class="form-input">
+                    <input type="search" placeholder="Search...">
+                    <button class="search-btn" type="submit"><i class='bx bx-search'></i></button>
+                </div>
+            </form>
+            <input type="checkbox" id="theme-toggle" hidden>
+            <label for="theme-toggle" class="theme-toggle"></label>
+            <a href="#" class="notif">
+                <i class='bx bx-bell'></i>
+                <span class="count">12</span>
+            </a>
+            <a href="#" class="profile">
+                <img src="{{ url_for('static', filename='images/stat-logo.png') }}">
+            </a>
+        </nav>
+        
+        <main>
+            <div class="header">
+                <div class="left">
+                    <h1>
+                        {% if page == 'dashboard' %}
+                            Dashboard
+                        {% elif page == 'analytics' %}
+                            Analytics
+                        {% elif page == 'data_management' %}
+                            Data Management
+                        {% endif %}
+                    </h1>
+                    <ul class="breadcrumb">
+                        <li>
+                            <a href="#" class="active">
+                                {% if page == 'dashboard' %}Home
+                                {% elif page == 'analytics' %}Sentiment Analysis
+                                {% elif page == 'data_management' %}Storage
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('view_news') }}" class="report">
+                    <i class='bx bx-cloud-download'></i>
+                    <span>Download CSV</span>
+                </a>
+            </div>
+
+            <!-- Display Dashboard Content -->
+            {% if page == 'dashboard' %}
+            <ul class="insights">
+                <!-- News Data -->
+                <li>
+                    <a href="{{ url_for('view_news') }}">
+                        <i class='bx bx-news'></i>
+                        <span class="info">
+                            <h3>{{ total_data }}</h3>
+                            <p>News Data</p>
+                        </span>
+                    </a>
+                </li>
+            
+                <!-- Yield Data -->
+                <li>
+                    <a href="{{ url_for('view_yields') }}">
+                        <i class='bx bx-money'></i>
+                        <span class="info">
+                            <h3>{{ yield_data_count }}</h3>
+                            <p>Yield Data</p>
+                        </span>
+                    </a>
+                </li>
+            
+                <!-- Compound Today -->
+                <li>
+                    <i class='bx bx-line-chart'></i>
+                    <span class="info">
+                        <h3>{{ average_compound_today }}</h3>
+                        <p>Compound Today</p>
+                    </span>
+                </li>
+            
+                <!-- Sentiment Today -->
+                <li>
+                    <i class='bx bx-smile'></i>
+                    <span class="info">
+                        <h3>{{ sentiment_today }}</h3>
+                        <p>Sentiment Today</p>
+                    </span>
+                </li>
+            
+                <!-- Yield Today -->
+                <li>
+                    <i class='bx bx-dollar-circle'></i>
+                    <span class="info">
+                        <h3>{{ yield_today }}%</h3>
+                        <p>Yield Today</p>
+                    </span>
+                </li>
+            </ul>
+
+            <!-- Form Input URL untuk platform -->
+            <div class="bottom-data">
+                <div class="orders">
+                    <div class="header">
+                        <i class='bx bx-receipt'></i>
+                        <h3>Input URL</h3>
+                    </div>
+                    <div class="input-container">
+                        <form action="{{ url_for('submit_url') }}" method="POST">
+                            <label for="platform">Select Platform:</label>
+                            <div class="custom-dropdown">
+                                <button class="dropdown-toggle" type="button" id="dropdown-button">
+                                    <img src="{{ url_for('static', filename='images/kontan.jpeg') }}" alt="Kontan Logo" class="dropdown-icon">
+                                    Kontan
+                                </button>
+                                <div class="dropdown-menu">
+                                    <div class="dropdown-group">
+                                        <h4 class="dropdown-group-title">Platform Nasional</h4>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/kontan.jpeg') }}" data-value="kontan">
+                                            <img src="{{ url_for('static', filename='images/kontan.jpeg') }}" alt="Kontan Logo" class="item-icon">
+                                            Kontan
+                                        </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/cnbc.png') }}" data-value="cnbcindonesia">
+                                            <img src="{{ url_for('static', filename='images/cnbc.png') }}" alt="CNBC Logo" class="item-icon">
+                                            CNBC Indonesia
+                                        </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/viva.jpeg') }}" data-value="viva">
+                                            <img src="{{ url_for('static', filename='images/viva.jpeg') }}" alt="Viva Logo" class="item-icon">
+                                            Viva
+                                        </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/bisnis.png') }}" data-value="bisnis">
+                                            <img src="{{ url_for('static', filename='images/bisnis.png') }}" alt="Bisnis Logo" class="item-icon">
+                                            Bisnis
+                                        </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/katadata.jpeg') }}" data-value="katadata">
+                                            <img src="{{ url_for('static', filename='images/katadata.jpeg') }}" alt="Katadata Logo" class="item-icon">
+                                            Katadata
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-group">
+                                        <h4 class="dropdown-group-title">Platform Internasional</h4>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/bbc.png') }}" data-value="bbc">
+                                            <img src="{{ url_for('static', filename='images/bbc.png') }}" alt="BBC Logo" class="item-icon">
+                                            BBC
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="platform" name="platform" value="kontan">
+                            </div>
+                            <label for="url">Enter URL:</label>
+                            <input type="url" id="url" name="url" placeholder="Enter article URL here..." required>
+                            <button type="submit" class="submit-btn">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!--Script input URL-->
+            <script>
+                const platformDomains = {
+                    "kontan": "https://kontan.co.id/",
+                    "cnbcindonesia": "https://cnbcindonesia.com/",
+                    "viva": "https://viva.com/",
+                    "bisnis": "https://bisnis.com/",
+                    "katadata": "https://katadata.co.id/",
+                    "bbc": "https://bbc.com/"
+                };
+            
+                const dropdown = document.querySelector('.custom-dropdown');
+                const dropdownButton = dropdown.querySelector('.dropdown-toggle');
+                const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+                const dropdownItems = dropdown.querySelectorAll('.dropdown-item');
+                const hiddenInput = dropdown.querySelector('#platform');
+                const urlInput = document.getElementById('url');
+            
+                // Toggle dropdown menu
+                dropdownButton.addEventListener('click', function () {
+                    dropdown.classList.toggle('open');
+                });
+            
+                // Select item
+                dropdownItems.forEach(item => {
+                    item.addEventListener('click', function () {
+                        const selectedValue = item.getAttribute('data-value');
+                        const selectedImg = item.getAttribute('data-img');
+                        const selectedText = item.textContent.trim();
+            
+                        // Update button content
+                        dropdownButton.innerHTML = `<img src="${selectedImg}" class="dropdown-icon" alt="Icon"> ${selectedText}`;
+            
+                        // Update hidden input value
+                        hiddenInput.value = selectedValue;
+            
+                        // Update URL input placeholder based on selected platform
+                        urlInput.placeholder = platformDomains[selectedValue] || "Enter article URL here...";
+            
+                        // Close dropdown
+                        dropdown.classList.remove('open');
+                    });
+                });
+            
+                // Close dropdown if clicked outside
+                document.addEventListener('click', function (event) {
+                    if (!dropdown.contains(event.target)) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+            
+                // Set initial placeholder when the page loads
+                document.addEventListener("DOMContentLoaded", function () {
+                    const initialPlatform = hiddenInput.value;
+                    urlInput.placeholder = platformDomains[initialPlatform] || "Enter article URL here...";
+                });
+            </script>
+
+            <!--Input CSV and Yield-->
+            <div class="bottom-data flex-container">
+                 <!-- Upload CSV Section -->
+                 <div class="orders flex-item">
+                    <div class="header">
+                        <i class='bx bx-upload'></i>
+                        <h3>Upload CSV</h3>
+                    </div>
+                    <div class="input-container">
+                        <div id="drop-area">
+                            <p>Drag and drop a CSV file here or click to select</p>
+                        </div>
+                        <form action="{{ url_for('upload_csv') }}" method="POST" enctype="multipart/form-data">
+                            <div class="file-upload">
+                                <label for="csv_file" class="file-label">
+                                    <span>Choose File</span>
+                                    <input type="file" id="csv_file" name="csv_file" accept=".csv" required hidden>
+                                </label>
+                                <select name="csv_type" required>
+                                    <option value="" disabled selected>Select CSV Type</option>
+                                    <option value="news">News</option>
+                                    <option value="yield">Yield</option>
+                                </select>
+                                <span id="file-name">No file selected</span>
+                            </div>
+                            <button type="submit" class="submit-btn">Upload</button>
+                        </form>
+                        <div class="template-download">
+                            <a href="{{ url_for('download_template', template='news') }}" class="download-btn">Download News Template</a>
+                            <a href="{{ url_for('download_template', template='yield') }}" class="download-btn">Download Yield Template</a>
+                        </div>
+                    </div>
+                </div>             
+
+                <!-- Input Yield Section -->
+                <div class="orders flex-item">
+                    <div class="header">
+                        <i class='bx bx-chart'></i>
+                        <h3>Input Yield</h3>
+                    </div>
+                    <div class="input-container">
+                        <form action="{{ url_for('input_yield') }}" method="POST">
+                            <label for="yield_value">Yield Value:</label>
+                            <input type="number" id="yield_value" name="yield_value" step="any" placeholder="Enter yield value" required>
+                            <label for="yield_date">Select Date:</label>
+                            <input type="date" id="yield_date" name="yield_date" required>
+                            <button type="submit" class="submit-btn">Submit</button>
+                        </form>
+                    </div>
+                </div> 
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const dropArea = document.getElementById('drop-area');
+                    const fileInput = document.getElementById('csv_file');
+                    const fileNameDisplay = document.getElementById('file-name');
+
+                    // Drag and drop functionality
+                    dropArea.addEventListener('click', () => fileInput.click());
+                    dropArea.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        dropArea.style.backgroundColor = '#f0f8ff'; // Highlight on dragover
+                    });
+                    dropArea.addEventListener('dragleave', () => {
+                        dropArea.style.backgroundColor = ''; // Reset background
+                    });
+                    dropArea.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dropArea.style.backgroundColor = ''; // Reset background
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                            fileInput.files = files; // Assign dropped files to input
+                            fileNameDisplay.textContent = files[0].name; // Display file name
+                        }
+                    });
+
+                    // File input change event
+                    fileInput.addEventListener('change', () => {
+                        if (fileInput.files.length > 0) {
+                            const fileName = fileInput.files[0].name;
+                            fileNameDisplay.textContent = fileName.length > 25 
+                                ? `${fileName.substring(0, 22)}...` 
+                                : fileName; // Gunakan ellipsis jika nama file terlalu panjang
+                        } else {
+                            fileNameDisplay.textContent = 'No file selected';
+                        }
+                    });
+                });
+            </script>
+            {% endif %}    
+
+            {% if page == 'analytics' %}
+            <!-- Display Analytics Content -->
+            <div class="bottom-data">
+                <div class="orders">
+                    <div class="header">
+                        <i class='bx bx-receipt'></i>
+                        <h3>Sentiment Analysis Results</h3>
+                        <form method="POST" style="display: inline;">
+                            <button type="submit" class="run-program">Analyze New Data</button>
+                        </form>
+                    </div>
+                    <div class="table-controls">
+                        <div class="filter-group">
+                            <label for="filter-title">Filter Title:</label>
+                            <input type="text" id="filter-title" placeholder="Search Title...">
+                        </div>
+                        <div class="filter-group">
+                            <label for="sort-title">Sort Title:</label>
+                            <select id="sort-title">
+                                <option value="az">A-Z</option>
+                                <option value="za">Z-A</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="sort-date">Sort Date:</label>
+                            <select id="sort-date">
+                                <option value="newest">Newest</option>
+                                <option value="oldest">Oldest</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="sort-compound">Sort Compound:</label>
+                            <select id="sort-compound">
+                                <option value="highest">Highest</option>
+                                <option value="lowest">Lowest</option>
+                            </select>
+                        </div>
+                    </div>                                                                               
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Date</th>
+                                <th>Compound Score</th>
+                                <th>Sentiment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in sentiment_data %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[3] }}</td>
+                                <td>{{ row[1] if row[1] else 'Pending' }}</td>
+                                <td>{{ row[2] if row[2] else 'Pending' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                const filterTitleInput = document.getElementById("filter-title");
+                const sortTitleSelect = document.getElementById("sort-title");
+                const sortDateSelect = document.getElementById("sort-date");
+                const sortCompoundSelect = document.getElementById("sort-compound");
+                const tableBody = document.querySelector("table tbody");
+
+                // Filter Table Rows by Title
+                filterTitleInput.addEventListener("input", function () {
+                    const filterValue = filterTitleInput.value.toLowerCase();
+                    const rows = Array.from(tableBody.rows);
+
+                    rows.forEach(row => {
+                        const title = row.cells[0].textContent.toLowerCase();
+                        row.style.display = title.includes(filterValue) ? "" : "none";
+                    });
+                });
+
+                // Sort Table Rows
+                function sortTable(columnIndex, type, order) {
+                    const rows = Array.from(tableBody.rows);
+                    const compare = {
+                        string: (a, b) => a.localeCompare(b),
+                        date: (a, b) => new Date(a) - new Date(b),
+                        number: (a, b) => parseFloat(a) - parseFloat(b)
+                    };
+
+                    rows.sort((rowA, rowB) => {
+                        const cellA = rowA.cells[columnIndex].textContent.trim();
+                        const cellB = rowB.cells[columnIndex].textContent.trim();
+                        const result = compare[type](cellA, cellB);
+
+                        return order === "asc" ? result : -result;
+                    });
+
+                    rows.forEach(row => tableBody.appendChild(row));
+                }
+
+                // Handle Sorting for Title
+                sortTitleSelect.addEventListener("change", function () {
+                    const order = sortTitleSelect.value === "az" ? "asc" : "desc";
+                    sortTable(0, "string", order);
+                });
+
+                // Handle Sorting for Date
+                sortDateSelect.addEventListener("change", function () {
+                    const order = sortDateSelect.value === "newest" ? "desc" : "asc";
+                    sortTable(1, "date", order);
+                });
+
+                // Handle Sorting for Compound Score
+                sortCompoundSelect.addEventListener("change", function () {
+                    const order = sortCompoundSelect.value === "highest" ? "desc" : "asc";
+                    sortTable(2, "number", order);
+                });
+            });
+
+            </script>
+            <!--Grafik-->
+            <div class="chart-container" style="position: relative; width: 100%; height: 500px;">
+                <canvas id="compoundLineChart"></canvas>
+            </div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    fetch('/analytics-data')
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log("Compound Data:", data.compound_data);
+                            console.log("Yield Data:", data.yield_data);
+
+                            const compoundData = data.compound_data || [];
+                            const yieldData = data.yield_data || [];
+
+                            if (!compoundData.length || !yieldData.length) {
+                                console.error("Missing data for the chart.");
+                                return;
+                            }
+
+                            const allDates = [
+                                ...new Set([
+                                    ...compoundData.map(item => item.date),
+                                    ...yieldData.map(item => item.date),
+                                ])
+                            ].sort();
+
+                            const compoundMap = new Map(compoundData.map(item => [item.date, item.compound]));
+                            const yieldMap = new Map(yieldData.map(item => [item.date, item.yield]));
+
+                            const compoundScores = allDates.map(date => compoundMap.get(date) || null);
+                            const yieldValues = allDates.map(date => yieldMap.get(date) || null);
+
+                            const ctx = document.getElementById('compoundLineChart').getContext('2d');
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: allDates,
+                                    datasets: [
+                                        {
+                                            label: 'Compound Score',
+                                            data: compoundScores,
+                                            borderColor: '#FF5733', // Red color for Compound Score
+                                            fill: false,
+                                            tension: 0.3,
+                                            spanGaps: true,
+                                            borderWidth: 2,
+                                        },
+                                        {
+                                            label: 'Yield Value',
+                                            data: yieldValues,
+                                            borderColor: '#32CD32', // Green color for Yield Value
+                                            fill: false,
+                                            tension: 0.3,
+                                            spanGaps: true,
+                                            borderWidth: 2,
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        x: {
+                                            type: 'time',
+                                            time: {
+                                                unit: 'day',
+                                                displayFormats: {
+                                                    day: 'yyyy-MM-dd'
+                                                },
+                                                title: {
+                                                    display: true,
+                                                    text: 'Date'
+                                                }
+                                            }
+                                        },
+                                        y: {
+                                            title: {
+                                                display: true,
+                                                text: 'Values'
+                                            }
+                                        }
+                                    },
+                                    plugins: {
+                                        zoom: {
+                                            pan: {
+                                                enabled: true,
+                                                mode: 'x',
+                                            },
+                                            zoom: {
+                                                drag: {
+                                                    enabled: true,
+                                                },
+                                                wheel: {
+                                                    enabled: true,
+                                                    speed: 0.1,
+                                                },
+                                                pinch: {
+                                                    enabled: true,
+                                                },
+                                                mode: 'x',
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        })
+                        .catch(error => console.error('Error fetching analytics data:', error));
+                });
+            </script>
+            <!--Modelling-->
+            <!-- Regression Model Section -->
+            <div class="regression-container">
+                <div class="header">
+                    <h3>Regression Model Calculator</h3>
+                    <p class="model-equation">Yield_movement = -0.01939 - 0.0920 Polarity + 0.000001 Kurs</p>
+                </div>
+                <div class="input-container side-by-side">
+                    <div class="input-group">
+                        <label for="polarity">Polarity:</label>
+                        <input type="number" id="polarity" name="polarity" step="0.0001" placeholder="Enter Polarity Value">
+                    </div>
+                    <div class="input-group">
+                        <label for="kurs">Kurs:</label>
+                        <input type="number" id="kurs" name="kurs" step="1" placeholder="Enter Kurs Value">
+                    </div>
+                </div>
+                <button id="calculate-model" class="submit-btn">Calculate</button>
+                <p><strong>Yield Movement:</strong> <span id="yield-model-result">N/A</span></p>
+            </div>
+
+            <script>
+                document.getElementById('calculate-model').addEventListener('click', function () {
+                    const polarity = parseFloat(document.getElementById('polarity').value) || 0;
+                    const kurs = parseFloat(document.getElementById('kurs').value) || 0;
+            
+                    // Regression coefficients
+                    const intercept = -0.01939;
+                    const polarityCoeff = -0.0920;
+                    const kursCoeff = 0.000001;
+            
+                    // Calculate yield movement
+                    const yieldMovement = intercept + (polarityCoeff * polarity) + (kursCoeff * kurs);
+            
+                    // Display result
+                    document.getElementById('yield-model-result').textContent = yieldMovement.toFixed(5);
+                });
+            </script>             
+            {% endif %}
+
+            <!--Data Management-->
+            {% if page == 'data_management' %}
+            <div class="bottom-data">
+                <!-- News Data Management -->
+                <div class="orders">
+                    <div class="header">
+                        <i class='bx bx-news'></i>
+                        <h3>Manage News Data</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in news_data %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[1] }}</td>
+                                <td>{{ row[2] }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_data', table='news', id=row[0]) }}" class="action-btn edit-btn">Edit</a>
+                                    <form action="{{ url_for('delete_data', table='news', id=row[0]) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="action-btn delete-btn">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Yield Data Management -->
+                <div class="orders">
+                    <div class="header">
+                        <i class='bx bx-money'></i>
+                        <h3>Manage Yield Data</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Value</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in yield_data %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[1] }}</td>
+                                <td>{{ row[2] }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_data', table='yields', id=row[0]) }}" class="action-btn edit-btn">Edit</a>
+                                    <form action="{{ url_for('delete_data', table='yields', id=row[0]) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="action-btn delete-btn">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+    <div>
+    <!-- Hidden Flash Messages -->
+    <div style="display: none;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-message" data-category="{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+    <!-- Script to Display Notifications -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            const notificationContainer = document.getElementById('notification-container');
+
+            flashMessages.forEach(message => {
+                const category = message.getAttribute('data-category');
+                const text = message.textContent;
+
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.classList.add('notification', category);
+                notification.textContent = text;
+
+                // Append to container
+                notificationContainer.appendChild(notification);
+
+                // Remove notification after 5 seconds
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>

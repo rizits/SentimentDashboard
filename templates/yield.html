@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Yield Data</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Additional styling specific to yield.html */
+        .table-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--light);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        th:nth-child(1) {
+            text-align: center;
+        }
+        
+        td:nth-child(1) { 
+            text-align: center;
+        }
+
+        /* Center-align the 2nd column (Yield Date) */
+         th:nth-child(2) {
+            text-align: center;
+        }
+        
+        td:nth-child(2) { 
+            text-align: center;
+        }
+
+        /* Center-align the 3rd column (Yield Value) */
+        th:nth-child(3) {
+            text-align: center;
+        }
+        
+        td:nth-child(3) { 
+            text-align: center;
+        }
+
+        tr:hover {
+            background-color: var(--grey);
+        }
+
+        .no-data {
+            text-align: center;
+            font-size: 18px;
+            color: var(--dark-grey);
+        }
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <h1>Saved Yield Data</h1>
+        {% if yield_data %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Input Date</th>
+                    <th>Yield Date</th>
+                    <th>Yield Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in yield_data %}
+                <tr>
+                    <td>{{ row[1] }}</td> <!-- Input Date -->
+                    <td>{{ row[2] }}</td> <!-- Yield Date -->
+                    <td>{{ row[3] }}</td> <!-- Yield Value -->
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data">No yield data available</p>
+        {% endif %}
+    </div>
+</body>
+</html>

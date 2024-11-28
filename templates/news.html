@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved News Data</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Styling for the table */
+        .table-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f6f6f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: #1976D2;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        a {
+            color: #1976D2;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        td {
+            word-break: break-word; /* Break long URLs if necessary */
+        }
+
+        .no-data {
+            text-align: center;
+            font-size: 18px;
+            color: #888;
+        }
+
+        th:nth-child(1) {
+            text-align: center;
+        }
+        
+        td:nth-child(1) { 
+            text-align: center;
+        }
+
+        th:nth-child(2) {
+            text-align: center;
+        }
+        
+        td:nth-child(2) { 
+            text-align: left;
+        }
+
+        th:nth-child(3) {
+            text-align: center;
+        }
+        
+        td:nth-child(3) { 
+            text-align: left;
+        }
+
+        th:nth-child(4) {
+            text-align: center;
+        }
+        
+        td:nth-child(4) { 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <h1>Saved News Data</h1>
+        {% if news_data %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Input Date</th>
+                    <th>URL</th>
+                    <th>Publish Date</th>
+                    <th>Title</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in news_data %}
+                <tr>
+                    <td>{{ row[1] }}</td> <!-- input_date -->
+                    <td><a href="{{ row[2] }}" target="_blank">{{ row[2] }}</a></td> <!-- url -->
+                    <td>{{ row[3] if row[3] != 'None' else 'Not available' }}</td> <!-- publish_date -->
+                    <td>{{ row[4] }}</td> <!-- title -->
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data">No data available</p>
+        {% endif %}
+    </div>
+</body>
+</html>
