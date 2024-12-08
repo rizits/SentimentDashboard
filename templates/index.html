@@ -120,7 +120,7 @@
                 </li>
             
                 <!-- Compound Today -->
-                <li>
+                <li class="{% if average_compound_today < 0 %}negative{% endif %}">
                     <i class='bx bx-line-chart'></i>
                     <span class="info">
                         <h3>{{ average_compound_today }}</h3>
@@ -129,13 +129,20 @@
                 </li>
             
                 <!-- Sentiment Today -->
-                <li>
-                    <i class='bx bx-smile'></i>
+                <li class="{% if sentiment_compound == 'Negative' %}negative{% endif %}">
+                    <i class='bx bx-happy-alt'></i>
                     <span class="info">
-                        <h3>{{ sentiment_today }}</h3>
-                        <p>Sentiment Today</p>
+                        <h3>{{ sentiment_compound }}</h3>
+                        <p>Sentiment (Avg)</p>
                     </span>
                 </li>
+                <li class="{% if sentiment_mode == 'Negative' %}negative{% endif %}">
+                    <i class='bx bx-happy-alt'></i>
+                    <span class="info">
+                        <h3>{{ sentiment_mode }}</h3>
+                        <p>Sentiment (Mode)</p>
+                    </span>
+                </li>                
             
                 <!-- Yield Today -->
                 <li>
@@ -389,8 +396,8 @@
                                 <option value="lowest">Lowest</option>
                             </select>
                         </div>
-                    </div>                                                                               
-                    <table>
+                    </div>
+                    <table class="analytics-table">                                                                          
                         <thead>
                             <tr>
                                 <th>Title</th>
@@ -683,76 +690,70 @@
             </script>             
             {% endif %}
 
-            <!--Data Management-->
-            {% if page == 'data_management' %}
-            <div class="bottom-data">
-                <!-- News Data Management -->
-                <div class="orders">
-                    <div class="header">
-                        <i class='bx bx-news'></i>
-                        <h3>Manage News Data</h3>
+            <!-- Data Management -->
+                {% if page == 'data_management' %}
+                <div class="bottom-data">
+                    <!-- News Data Management -->
+                    <div class="orders news-data">
+                        <div class="header">
+                            <i class='bx bx-news'></i>
+                            <h3>Manage News Data</h3>
+                        </div>
+                        <table class="news-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in news_data %}
+                                <tr>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>
+                                        <form action="{{ url_for('delete_data', table='news', id=row[0]) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="action-btn delete-btn">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Title</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in news_data %}
-                            <tr>
-                                <td>{{ row[0] }}</td>
-                                <td>{{ row[1] }}</td>
-                                <td>{{ row[2] }}</td>
-                                <td>
-                                    <a href="{{ url_for('edit_data', table='news', id=row[0]) }}" class="action-btn edit-btn">Edit</a>
-                                    <form action="{{ url_for('delete_data', table='news', id=row[0]) }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="action-btn delete-btn">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
 
-                <!-- Yield Data Management -->
-                <div class="orders">
-                    <div class="header">
-                        <i class='bx bx-money'></i>
-                        <h3>Manage Yield Data</h3>
+                    <!-- Yield Data Management -->
+                    <div class="orders yield-data">
+                        <div class="header">
+                            <i class='bx bx-money'></i>
+                            <h3>Manage Yield Data</h3>
+                        </div>
+                        <table class="yield-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in yield_data %}
+                                <tr>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>
+                                        <form action="{{ url_for('delete_data', table='yields', id=row[0]) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="action-btn delete-btn">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Date</th>
-                                <th>Value</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in yield_data %}
-                            <tr>
-                                <td>{{ row[0] }}</td>
-                                <td>{{ row[1] }}</td>
-                                <td>{{ row[2] }}</td>
-                                <td>
-                                    <a href="{{ url_for('edit_data', table='yields', id=row[0]) }}" class="action-btn edit-btn">Edit</a>
-                                    <form action="{{ url_for('delete_data', table='yields', id=row[0]) }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="action-btn delete-btn">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
         </main>
     <div>
     <!-- Hidden Flash Messages -->
