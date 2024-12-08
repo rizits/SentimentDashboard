@@ -399,6 +399,7 @@ body {
     color: inherit;
 }
 
+/* Total News Data */
 .content main .insights li:nth-child(1) .bx {
     background: var(--light-primary);
     color: var(--primary);
@@ -414,12 +415,30 @@ body {
     color: var(--positive);
 }
 
+.content main .insights li:nth-child(3).negative .bx {
+    background: var(--light-danger);
+    color: var(--negative);
+}
+
 .content main .insights li:nth-child(4) .bx {
+    background: var(--light-success);
+    color: var(--positive);
+}
+.content main .insights li:nth-child(4).negative .bx {
     background: var(--light-danger);
     color: var(--negative);
 }
 
 .content main .insights li:nth-child(5) .bx {
+    background: var(--light-success);
+    color: var(--positive);
+}
+.content main .insights li:nth-child(5).negative .bx {
+    background: var(--light-danger);
+    color: var(--negative);
+}
+
+.content main .insights li:nth-child(6) .bx {
     background: var(--light-warning);
     color: var(--neutral);
 }
@@ -538,11 +557,12 @@ button.submit-btn:hover {
     text-align: center;
 }
 
-.content main .bottom-data .orders table td:first-child {
-    text-align: left; /* Kolom Title tetap rata kiri */
+.analytics-table tr td:first-child {
+    text-align: left;
 }
 
-.content main .bottom-data .orders table tr td:first-child {
+.news-data .news-table tr td:first-child,
+.analytics-table tr td:first-child {
     display: flex;
     align-items: center;
     grid-gap: 12px;
@@ -1171,36 +1191,76 @@ select:focus {
     color: var(--dark);
 }
 
-/* Data Management */
+/* Data Management Section */
+.content .bottom-data {
+    display: flex;
+    flex-wrap: wrap;
+    grid-gap: 24px;
+    margin-top: 24px;
+    width: 100%;
+    color: var(--dark);
+}
 
-/* Table styling */
-table {
+.content .bottom-data>div {
+    border-radius: 20px;
+    background: var(--light);
+    padding: 24px;
+    overflow-x: auto;
+}
+
+.content .bottom-data .header {
+    display: flex;
+    align-items: center;
+    grid-gap: 16px;
+    margin-bottom: 24px;
+}
+
+.content .bottom-data .header h3 {
+    margin-right: auto;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.content .bottom-data .header .bx {
+    cursor: pointer;
+}
+
+/* Data Table Styling */
+.content .bottom-data .orders table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
 }
 
-table th, table td {
+.content .bottom-data .orders table th,
+.content .bottom-data .orders table td {
     border: 1px solid var(--grey);
     padding: 10px;
-    text-align: left;
+    text-align: left; /* Default alignment */
 }
 
-table th {
+.content .bottom-data .orders table th {
     background-color: var(--light-primary);
     color: var(--primary);
     font-weight: bold;
+    text-align: center; /* Header centered */
 }
 
-table tr:hover {
-    background-color: var(--grey);
-}
-
-table td {
+.content .bottom-data .orders table td {
     vertical-align: middle;
 }
 
-/* Action buttons */
+.content .bottom-data .orders table tr:hover {
+    background-color: var(--grey);
+}
+
+/* Specific Yield Table Center Alignment */
+.content .yield-data .yield-table th,
+.content .yield-data .yield-table td {
+    text-align: center; /* Ensure text is centered for yield table */
+}
+
+/* Action Buttons Styling */
 .action-btn {
     padding: 5px 10px;
     border-radius: 5px;

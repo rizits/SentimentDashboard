@@ -694,43 +694,83 @@ def index():
         conn = connect_db()
         if conn is None:
             flash('Koneksi database gagal.', 'danger')
-            return render_template('index.html', total_data=0, page="dashboard", average_compound_today=0.0, sentiment_today="No Data", yield_data_count=0, yield_today=0.0)
+            return render_template(
+                'index.html',
+                page="dashboard",
+                total_data=0,
+                sentiment_compound="No Data",
+                sentiment_mode="No Data",
+                average_compound_today=0.0,
+                yield_data_count=0,
+                yield_today=0.0,
+                news_data=[],
+                yield_data=[]
+            )
 
         with conn.cursor() as cursor:
-            # Dashboard Data
-            cursor.execute("SELECT COUNT(*) FROM news")
-            total_data = cursor.fetchone()[0]
+            # Determine the current page
+            page = request.args.get('page', 'dashboard')
 
-            cursor.execute("SELECT AVG(compound) FROM news WHERE DATE(publish_date) = %s", (datetime.today().strftime('%Y-%m-%d'),))
-            average_compound_today = cursor.fetchone()[0] or 0.0
+            # Initialize variables
+            total_data = 0
+            average_compound_today = 0.0
+            sentiment_compound = "No Data"
+            sentiment_mode = "No Data"
+            yield_data_count = 0
+            yield_today = "0.00"
+            news_data = []
+            yield_data = []
 
-            cursor.execute("SELECT sentiment FROM news WHERE DATE(publish_date) = %s", (datetime.today().strftime('%Y-%m-%d'),))
-            sentiments = [row[0] for row in cursor.fetchall()]
-            sentiment_today = max(set(sentiments), key=sentiments.count) if sentiments else "No Data"
+            if page == "dashboard":
+                # Fetch total number of news data
+                cursor.execute("SELECT COUNT(*) FROM news")
+                total_data = cursor.fetchone()[0] if cursor.rowcount > 0 else 0
 
-            cursor.execute("SELECT COUNT(*) FROM yields")
-            yield_data_count = cursor.fetchone()[0]
+                # Fetch average compound score for today
+                today_date = datetime.today().strftime('%Y-%m-%d')
+                cursor.execute("SELECT AVG(compound) FROM news WHERE DATE(publish_date) = %s", (today_date,))
+                average_compound_today = cursor.fetchone()[0] or 0.0
+                sentiment_compound = (
+                    "Positive" if average_compound_today > 0 else
+                    "Negative" if average_compound_today < 0 else
+                    "Neutral"
+                )
 
-            yield_today = get_yield_today()
-            yield_today_percentage = yield_today * 100
-            yield_today = "{:.2f}".format(yield_today_percentage)
+                # Fetch sentiment mode for today
+                cursor.execute("SELECT sentiment FROM news WHERE DATE(publish_date) = %s", (today_date,))
+                sentiment_results = [row[0] for row in cursor.fetchall()]
+                sentiment_mode = (
+                    max(set(sentiment_results), key=sentiment_results.count) if sentiment_results else "No Data"
+                )
 
-            # Data Management Data
-            cursor.execute("SELECT id, title, publish_date, content FROM news ORDER BY id DESC")
-            news_data = cursor.fetchall()
+                # Fetch yield data count
+                cursor.execute("SELECT COUNT(*) FROM yields")
+                yield_data_count = cursor.fetchone()[0] if cursor.rowcount > 0 else 0
 
-            cursor.execute("SELECT id, yield_date, yield_value FROM yields ORDER BY id DESC")
-            yield_data = cursor.fetchall()
+                # Fetch today's yield percentage
+                yield_today = get_yield_today()
+                yield_today_percentage = yield_today * 100 if yield_today is not None else 0.0
+                yield_today = f"{yield_today_percentage:.2f}"
+
+            elif page == "data_management":
+                # Fetch all news data for data management
+                cursor.execute("SELECT id, title, publish_date, content FROM news ORDER BY id DESC")
+                news_data = cursor.fetchall()
+
+                # Fetch all yield data for data management
+                cursor.execute("SELECT id, yield_date, yield_value FROM yields ORDER BY id DESC")
+                yield_data = cursor.fetchall()
 
         conn.close()
 
-        # Render template
+        # Render the template with data for the active page
         return render_template(
             'index.html',
-            page=request.args.get('page', 'dashboard'),  # Current page (dashboard or data management)
+            page=page,
             total_data=total_data,
             average_compound_today=round(average_compound_today, 2),
-            sentiment_today=sentiment_today,
+            sentiment_compound=sentiment_compound,
+            sentiment_mode=sentiment_mode,
             yield_data_count=yield_data_count,
             yield_today=yield_today,
             news_data=news_data,
@@ -744,13 +784,56 @@ def index():
             'index.html',
             page="dashboard",
             total_data=0,
+            sentiment_compound="No Data",
+            sentiment_mode="No Data",
             average_compound_today=0.0,
-            sentiment_today="No Data",
             yield_data_count=0,
-            yield_today=0.0,
+            yield_today="0.00",
             news_data=[],
             yield_data=[]
         )
+
+
+@app.route('/delete_news/<int:news_id>', methods=['POST'])
+def delete_news(news_id):
+    try:
+        conn = connect_db()
+        if conn is None:
+            flash('Koneksi database gagal.', 'danger')
+            return redirect(url_for('index', page='data_management'))
+
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM news WHERE id = %s", (news_id,))
+            conn.commit()
+
+        conn.close()
+        flash('Berita berhasil dihapus.', 'success')
+    except Exception as e:
+        logging.error(f"Error deleting news: {e}")
+        flash('Terjadi kesalahan saat menghapus berita.', 'danger')
+
+    return redirect(url_for('index', page='data_management'))
+
+
+@app.route('/delete_yield/<int:yield_id>', methods=['POST'])
+def delete_yield(yield_id):
+    try:
+        conn = connect_db()
+        if conn is None:
+            flash('Koneksi database gagal.', 'danger')
+            return redirect(url_for('index', page='data_management'))
+
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM yields WHERE id = %s", (yield_id,))
+            conn.commit()
+
+        conn.close()
+        flash('Data yield berhasil dihapus.', 'success')
+    except Exception as e:
+        logging.error(f"Error deleting yield: {e}")
+        flash('Terjadi kesalahan saat menghapus data yield.', 'danger')
+
+    return redirect(url_for('index', page='data_management'))
 
 @app.route('/view_yields')
 def view_yields():
