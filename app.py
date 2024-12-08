@@ -405,6 +405,71 @@ def remove_day_name(indonesian_date):
             return indonesian_date.replace(day + ",", "").strip()
     return indonesian_date
 
+def remove_html_tags_and_special_chars(html: str) -> str:
+    return (re.sub(r'\s+', ' ',                    # Replace multiple whitespaces with single space
+           re.sub(r'&#160;', ' ',                  # Replace &#160; with space
+           re.sub(r'&amp;', '&',                   # Replace &amp; with &
+           re.sub(r'&gt;', '>',                    # Replace &gt; with >
+           re.sub(r'&lt;', '<',                    # Replace &lt; with <
+           re.sub(r'&quot;', '',                   # Remove &quot;
+           re.sub(r'&nbsp;', ' ',                  # Replace &nbsp; with space
+           re.sub(r'&amp;', '&',                   # Replace &amp; with &
+           re.sub(r'&lsquo;', '',                  # Remove &lsquo;
+           re.sub(r'&rsquo;', '',                  # Remove &rsquo;
+           re.sub(r'&ldquo;', '',                  # Remove &ldquo;
+           re.sub(r'&rdquo;', '',                  # Remove &rdquo;
+           re.sub(r'[\r\n\u2028\u2029\v\f"]', ' ', # Remove line breaks and quotes
+           re.sub(r'<[^>]+>', '',                  # Remove HTML tags
+           re.sub(r'</?[^>]+(?:>|$)', '', html     # Remove HTML tags
+           )))))))))))))))).strip()
+
+def scrape_kemenkeu_article(url):
+    try:
+        # make sure url is of the form https://kemenkeu.go.id/
+        if not url.startswith("https://kemenkeu.go.id/"):
+            logging.error(f"Invalid URL: {url}")
+            return None, None, None
+        
+        # the url looks like this: https://kemenkeu.go.id/informasi-publik/publikasi/berita-utama/Wamenkeu-Anggito-Kemenkeu-Satu-Banten
+        # only get the part after https://kemenkeu.go.id
+        important_part = url.split("kemenkeu.go.id")[1]
+
+        modified_url = f"https://media.kemenkeu.go.id/SinglePage/DetailPage?p=/Pages{important_part}&lang=id" 
+
+        response = requests.get(modified_url, timeout=10)
+        if response.status_code == 200:
+            json_response = response.json()
+
+            # title
+            title = json_response['Data']['Title'] if 'Data' in json_response and 'Title' in json_response['Data'] else 'No title available'
+            
+            # article content
+            content = remove_html_tags_and_special_chars(
+                remove_html_tags_and_special_chars(
+                    json_response['Data']['Description']
+                )) if 'Data' in json_response and 'Description' in json_response['Data'] else "No content available"
+            
+            # publish date
+            publish_date_original = json_response['Data']['DocumentCreatedWhen'] if 'Data' in json_response and 'DocumentCreatedWhen' in json_response['Data'] else None
+            publish_date = None
+            if publish_date_original:
+                try:
+                    publish_date = datetime.strptime(publish_date_original, "%A, %d %B %Y %H:%M").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError, IndexError) as e:
+                    logging.error(f"Error parsing date: {publish_date_original} -> {e}")
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+
 def scrape_bisnis_article(url):
     try:
         response = requests.get(url, timeout=10)
@@ -920,7 +985,8 @@ def submit_url():
         "financialpost": "financialpost.com",
         "asianinvestor": "asianinvestor.net",
         "businessinsider": "businessinsider.com",
-        "jpmorgan": "jpmorgan.com"
+        "jpmorgan": "jpmorgan.com",
+        "kemenkeu": "kemenkeu.go.id"
     }
 
     # Validate URL
@@ -973,6 +1039,8 @@ def submit_url():
                     title, publish_date, content = scrape_viva_article(url)
                 elif platform == "katadata":
                     title, content, publish_date = scrape_katadata_article(url)
+                elif platform == "kemenkeu":
+                    title, content, publish_date = scrape_kemenkeu_article(url)
                 else:
                     flash('Scraping untuk platform ini belum didukung.', 'warning')
                     return redirect(url_for('index'))
