@@ -547,6 +547,64 @@ def scrape_djpprkemenkeu_article(url):
         logging.error(f"Request error saat scraping {url}: {e}")
         return None, None, None
     
+def scrape_mandirisekuritas_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            
+            # article content
+            elements = soup.select(".article__body p:not(.visually-hidden), "
+                    ".article__body h1:not(.visually-hidden), "
+                    ".article__body h2:not(.visually-hidden), "
+                    ".article__body h3:not(.visually-hidden), "
+                    ".article__body h4:not(.visually-hidden), "
+                    ".article__body h5:not(.visually-hidden), "
+                    ".article__body h6:not(.visually-hidden)")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            date_div = soup.find('div', class_='published-date')
+            date_text = date_div.get_text().split('•')[0].strip()
+            
+            # Month mapping (Indonesian)
+            month_map = {
+                'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+                'Mei': 5, 'Jun': 6, 'Jul': 7, 'Agu': 8,
+                'Sep': 9, 'Okt': 10, 'Nov': 11, 'Des': 12
+            }
+            
+            # Parse date components
+            month_str, day_str, year_str = date_text.split()
+            month = month_map[month_str]
+            day = int(day_str.replace(',', ''))
+            year = int(year_str)
+            
+            # Create datetime and format
+            date_obj = datetime(year, month, day)
+            publish_date = date_obj.strftime('%Y-%m-%d')
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+    
 def scrape_bloombergtechnoz_article(url):
     try:
         response = requests.get(url, timeout=10)
@@ -1114,6 +1172,7 @@ def submit_url():
         "kemenkeu": "kemenkeu.go.id",
         "djpprkemenkeu": "djppr.kemenkeu.go.id",
         "bloombergtechnoz": "bloombergtechnoz.com",
+        "mandirisekuritas": "mandirisekuritas.co.id"
     }
 
     # Validate URL
@@ -1172,6 +1231,8 @@ def submit_url():
                     title, content, publish_date = scrape_djpprkemenkeu_article(url)
                 elif platform == "bloombergtechnoz":
                     title, content, publish_date = scrape_bloombergtechnoz_article(url)
+                elif platform == "mandirisekuritas":
+                    title, content, publish_date = scrape_mandirisekuritas_article(url)
                 else:
                     flash('Scraping untuk platform ini belum didukung.', 'warning')
                     return redirect(url_for('index'))
