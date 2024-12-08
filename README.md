@@ -33,7 +33,7 @@ source .venv/bin/activate
 ```
 
 3. Install dependencies dengan menjalankan `uv sync`
-4. Jalankan command `uv run -- flask run -p 3000`
+4. Jalankan command `uv run -- flask run -p 3000 --debug`
 
 ### Deployment
 
