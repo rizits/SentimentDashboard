@@ -1,7 +1,6 @@
 import csv
 import json
 import logging
-import os
 import re
 from datetime import datetime
 from urllib.parse import urlparse
@@ -10,9 +9,8 @@ import MySQLdb
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, flash, redirect, render_template, request, url_for
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+from sentiment import preprocess_text, sentiment
 
 app = Flask(__name__)
 app.secret_key = "hehe150"
@@ -421,110 +419,6 @@ def save_raw_to_db(url, title, content, publish_date):
     finally:
         cursor.close()
         conn.close()
-
-
-# Memuat leksikon sentimen dari CSV
-base_dir = os.path.abspath(os.path.dirname(__file__))
-file_path = os.path.join(base_dir, "lexicon_fix.csv")
-inset_lexicon = {}
-
-try:
-    with open(file_path, encoding="utf-8") as csvfile:
-        reader = csv.reader(csvfile, delimiter=";")
-        next(reader)
-        for row in reader:
-            word = row[0]
-            try:
-                score = float(row[1])
-                inset_lexicon[word] = score
-            except ValueError:
-                logging.warning(f"Skor tidak valid untuk kata '{word}': {row[1]}")
-except FileNotFoundError:
-    logging.error(f"File lexicon tidak ditemukan di path: {file_path}")
-except Exception as e:
-    logging.error(f"Error saat memuat lexicon: {e}")
-
-
-# Fungsi untuk membersihkan teks
-def clean_text(review):
-    try:
-        review = review.encode("latin1", errors="ignore").decode(
-            "utf-8", errors="ignore"
-        )
-        review = re.sub(r"http\S+", "", review)  # Hapus URL
-        review = re.sub(r"<.*?>", "", review)  # Hapus tag HTML
-        review = re.sub(r"[^A-Za-z\s]", "", review)  # Hapus karakter non-alfabet
-        review = re.sub(r"\s+", " ", review).strip()  # Hapus spasi ekstra
-        return review
-    except Exception as e:
-        logging.error(f"Error dalam clean_text: {e}")
-        return ""
-
-
-# Fungsi untuk menghapus stopwords menggunakan Sastrawi
-stop_factory = StopWordRemoverFactory()
-stopword = stop_factory.create_stop_word_remover()
-
-
-def remove_stopwords(review):
-    try:
-        return stopword.remove(review)
-    except Exception as e:
-        logging.error(f"Error dalam remove_stopwords: {e}")
-        return review
-
-
-# Stemming menggunakan Sastrawi
-stemmer_factory = StemmerFactory()
-stemmer = stemmer_factory.create_stemmer()
-
-
-def stemmed(text):
-    try:
-        tokens = text.split()  # Tokenisasi sederhana berdasarkan spasi
-        stemmed_tokens = [
-            stemmer.stem(word) if word.isalpha() else word for word in tokens
-        ]  # Stemming hanya untuk kata
-        return " ".join(stemmed_tokens)
-    except Exception as e:
-        logging.error(f"Error dalam stemming: {e}")
-        return text
-
-
-# Fungsi untuk melakukan preprocessing teks
-def preprocess_text(text):
-    try:
-        text = clean_text(text)  # Pembersihan teks
-        text = remove_stopwords(text)  # Hapus stopwords
-        text = stemmed(text)  # Lakukan stemming
-        return text
-    except Exception as e:
-        logging.error(f"Error dalam preprocess_text: {e}")
-        return ""
-
-
-# Inisialisasi analyzer satu kali
-analyzer = SentimentIntensityAnalyzer()
-analyzer.lexicon.update(inset_lexicon)
-
-
-# Fungsi untuk analisis sentimen menggunakan VADER
-def sentiment(text):
-    try:
-        sentiment_scores = analyzer.polarity_scores(
-            text
-        )  # Analisis sentimen langsung pada teks
-        compound = sentiment_scores["compound"]
-        if compound >= 0.05:
-            sentiment_label = "Positive"
-        elif compound <= -0.05:
-            sentiment_label = "Negative"
-        else:
-            sentiment_label = "Neutral"
-        return round(compound, 4), sentiment_label
-    except Exception as e:
-        logging.error(f"Error dalam sentiment analysis: {e}")
-        return 0.0, "Error"
 
 
 # Fungsi untuk menyimpan data dengan analisis sentimen ke database
@@ -1036,6 +930,7 @@ def view_analytics():
                 if conn is None:
                     flash("Koneksi database gagal.", "danger")
                     return redirect(url_for("view_analytics"))
+
                 with conn.cursor() as cursor:
                     # Ambil data mentah yang belum dianalisis
                     cursor.execute("""
@@ -1044,21 +939,20 @@ def view_analytics():
                         WHERE compound IS NULL AND sentiment IS NULL
                     """)
                     raw_data = cursor.fetchall()
-                    logging.debug(
-                        f"Data yang ditemukan untuk analisis: {len(raw_data)} baris"
-                    )
+                    logging.debug(f"Data untuk analisis: {len(raw_data)} baris")
 
                     if raw_data:
                         for row in raw_data:
                             news_id, content = row
-                            logging.debug(f"Memproses ID {news_id}")
+                            logging.debug(
+                                f"Proses ID {news_id} - Raw Content: {content}"
+                            )
 
                             # Validasi: Pastikan konten tidak kosong
                             if not content or not content.strip():
                                 logging.warning(
                                     f"Konten kosong untuk ID {news_id}. Melewati analisis."
                                 )
-                                # Tandai sebagai 'Error' jika konten kosong
                                 cursor.execute(
                                     """
                                     UPDATE news
@@ -1070,15 +964,15 @@ def view_analytics():
                                 continue
 
                             try:
-                                # Preprocessing teks
+                                # Preprocessing teks menggunakan fungsi dari sentiment.py
                                 clean_content = preprocess_text(content)
                                 logging.debug(
-                                    f"ID {news_id} - Konten setelah preprocessing: {clean_content}"
+                                    f"ID {news_id} - Konten Bersih: {clean_content}"
                                 )
 
-                                if not clean_content:
+                                if not clean_content.strip():
                                     logging.warning(
-                                        f"Konten setelah preprocessing kosong untuk ID {news_id}. Menandai sebagai 'Error'."
+                                        f"Konten setelah preprocessing kosong untuk ID {news_id}."
                                     )
                                     cursor.execute(
                                         """
@@ -1090,12 +984,17 @@ def view_analytics():
                                     )
                                     continue
 
-                                # Analisis sentimen
-                                compound_score, sentiment_label = sentiment(
-                                    clean_content
+                                # Analisis sentimen menggunakan fungsi dari sentiment.py
+                                compound_score = sentiment(clean_content)
+                                sentiment_label = (
+                                    "Positive"
+                                    if compound_score >= 0.05
+                                    else "Negative"
+                                    if compound_score <= -0.05
+                                    else "Neutral"
                                 )
                                 logging.debug(
-                                    f"ID {news_id} - Hasil analisis: compound={compound_score}, sentiment={sentiment_label}"
+                                    f"ID {news_id} - Compound Score: {compound_score}, Sentiment Label: {sentiment_label}"
                                 )
 
                                 # Simpan hasil ke database
@@ -1107,13 +1006,10 @@ def view_analytics():
                                 """,
                                     (compound_score, sentiment_label, news_id),
                                 )
-                                logging.info(
-                                    f"Berhasil memperbarui ID {news_id} dengan compound={compound_score}, sentiment={sentiment_label}"
-                                )
+
                             except Exception as e:
                                 # Log error jika analisis gagal
-                                logging.error(f"Error memproses ID {news_id}: {e}")
-                                # Tandai sebagai 'Error'
+                                logging.error(f"Error pada ID {news_id}: {e}")
                                 cursor.execute(
                                     """
                                     UPDATE news
@@ -1126,18 +1022,20 @@ def view_analytics():
 
                         # Simpan semua perubahan ke database
                         conn.commit()
-                        logging.info("Commit transaksi berhasil.")
+                        logging.info("Komit perubahan ke database berhasil.")
                         flash("Analisis sentimen berhasil dilakukan!", "success")
                     else:
                         logging.info("Tidak ada data baru untuk dianalisis.")
                         flash("Tidak ada data baru untuk dianalisis.", "info")
 
             return redirect(url_for("view_analytics"))
-        except Exception:
-            logging.exception("Terjadi error di view_analytics:")
+
+        except Exception as e:
+            logging.error(f"Error di view_analytics: {e}")
             flash("Terjadi kesalahan saat memproses data.", "danger")
             return redirect(url_for("view_analytics"))
-    else:
+
+    else:  # GET request
         try:
             with connect_db() as conn:
                 if conn is None:
@@ -1149,9 +1047,9 @@ def view_analytics():
                     # Ambil semua data dari database untuk ditampilkan di tabel
                     cursor.execute("""
                         SELECT title, 
-                                IFNULL(compound, 'Pending') AS compound, 
-                                IFNULL(sentiment, 'Pending') AS sentiment,
-                                publish_date
+                               IFNULL(compound, 'Pending') AS compound, 
+                               IFNULL(sentiment, 'Pending') AS sentiment,
+                               publish_date
                         FROM news 
                         ORDER BY input_date DESC
                     """)
@@ -1159,8 +1057,8 @@ def view_analytics():
             return render_template(
                 "index.html", sentiment_data=sentiment_data, page="analytics"
             )
-        except Exception:
-            logging.exception("Terjadi error saat mengambil data untuk ditampilkan:")
+        except Exception as e:
+            logging.error(f"Error mengambil data untuk ditampilkan: {e}")
             flash("Terjadi kesalahan saat mengambil data.", "danger")
             return render_template("index.html", sentiment_data=[], page="analytics")
 

@@ -473,8 +473,12 @@
             </script>
             <!--Grafik-->
             <div class="chart-container" style="position: relative; width: 100%; height: 500px;">
-                <canvas id="compoundLineChart"></canvas>
+                <canvas id="compoundChart"></canvas>
             </div>
+            <div class="chart-container" style="position: relative; width: 100%; height: 500px;">
+                <canvas id="yieldChart"></canvas>
+            </div>
+            
             <script>
                 document.addEventListener("DOMContentLoaded", function () {
                     fetch('/analytics-data')
@@ -482,30 +486,31 @@
                         .then(data => {
                             console.log("Compound Data:", data.compound_data);
                             console.log("Yield Data:", data.yield_data);
-
+            
                             const compoundData = data.compound_data || [];
                             const yieldData = data.yield_data || [];
-
+            
                             if (!compoundData.length || !yieldData.length) {
-                                console.error("Missing data for the chart.");
+                                console.error("Missing data for the charts.");
                                 return;
                             }
-
+            
                             const allDates = [
                                 ...new Set([
                                     ...compoundData.map(item => item.date),
                                     ...yieldData.map(item => item.date),
                                 ])
                             ].sort();
-
+            
                             const compoundMap = new Map(compoundData.map(item => [item.date, item.compound]));
                             const yieldMap = new Map(yieldData.map(item => [item.date, item.yield]));
-
+            
                             const compoundScores = allDates.map(date => compoundMap.get(date) || null);
                             const yieldValues = allDates.map(date => yieldMap.get(date) || null);
-
-                            const ctx = document.getElementById('compoundLineChart').getContext('2d');
-                            new Chart(ctx, {
+            
+                            // Chart for Compound Score
+                            const compoundCtx = document.getElementById('compoundChart').getContext('2d');
+                            new Chart(compoundCtx, {
                                 type: 'line',
                                 data: {
                                     labels: allDates,
@@ -518,7 +523,64 @@
                                             tension: 0.3,
                                             spanGaps: true,
                                             borderWidth: 2,
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        x: {
+                                            type: 'time',
+                                            time: {
+                                                unit: 'day',
+                                                displayFormats: {
+                                                    day: 'yyyy-MM-dd'
+                                                },
+                                                title: {
+                                                    display: true,
+                                                    text: 'Date'
+                                                }
+                                            }
                                         },
+                                        y: {
+                                            title: {
+                                                display: true,
+                                                text: 'Compound Score'
+                                            }
+                                        }
+                                    },
+                                    plugins: {
+                                        zoom: {
+                                            pan: {
+                                                enabled: true,
+                                                mode: 'x',
+                                            },
+                                            zoom: {
+                                                drag: {
+                                                    enabled: true,
+                                                },
+                                                wheel: {
+                                                    enabled: true,
+                                                    speed: 0.1,
+                                                },
+                                                pinch: {
+                                                    enabled: true,
+                                                },
+                                                mode: 'x',
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+            
+                            // Chart for Yield Value
+                            const yieldCtx = document.getElementById('yieldChart').getContext('2d');
+                            new Chart(yieldCtx, {
+                                type: 'line',
+                                data: {
+                                    labels: allDates,
+                                    datasets: [
                                         {
                                             label: 'Yield Value',
                                             data: yieldValues,
@@ -550,7 +612,7 @@
                                         y: {
                                             title: {
                                                 display: true,
-                                                text: 'Values'
+                                                text: 'Yield Value'
                                             }
                                         }
                                     },
@@ -580,7 +642,7 @@
                         })
                         .catch(error => console.error('Error fetching analytics data:', error));
                 });
-            </script>
+            </script>            
             <!--Modelling-->
             <!-- Regression Model Section -->
             <div class="regression-container">
