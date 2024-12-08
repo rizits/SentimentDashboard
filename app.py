@@ -1,19 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash,Response, send_file
 from bs4 import BeautifulSoup
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
 import requests
 import MySQLdb
 import csv
-import os
 import json
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 import re
 import logging
 import json
 from sentiment import preprocess_text, sentiment
+from io import StringIO
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = 'hehe150'
@@ -25,9 +23,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 def connect_db():
     try:
         conn = MySQLdb.connect(
-            host="127.0.0.1",
-            user="rootuser",
-            passwd="rootpass",
+            host="localhost",
+            user="root",
+            passwd="",
             db="sentimenken_db"
         )
         return conn
@@ -39,6 +37,49 @@ def connect_db():
 @app.template_filter('tojson')
 def tojson_filter(data):
     return json.dumps(data)
+
+@app.route('/download_csv')
+def download_csv():
+    conn = connect_db()
+    if conn is None:
+        return "Database connection failed", 500
+
+    try:
+        cursor = conn.cursor()
+
+        # Fetch data dari tabel news
+        cursor.execute("SELECT input_date, url, publish_date, title, content, compound, sentiment FROM news")
+        news_data = cursor.fetchall()
+        news_columns = [desc[0] for desc in cursor.description]
+
+        # Fetch data dari tabel yields
+        cursor.execute("SELECT yield_date, yield_value, created_at FROM yields")
+        yields_data = cursor.fetchall()
+        yields_columns = [desc[0] for desc in cursor.description]
+
+        # Buat DataFrame untuk masing-masing tabel
+        news_df = pd.DataFrame(news_data, columns=news_columns)
+        yields_df = pd.DataFrame(yields_data, columns=yields_columns)
+
+        # Gabungkan CSV dalam satu file (gunakan newline sebagai pemisah antar tabel)
+        buffer = StringIO()
+        news_df.to_csv(buffer, index=False)
+        buffer.write("\n\n")  # Pemisah antar tabel
+        yields_df.to_csv(buffer, index=False)
+
+        # Reset pointer untuk pembacaan data
+        buffer.seek(0)
+        csv_content = buffer.getvalue()
+        buffer.close()
+
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={"Content-Disposition": "attachment;filename=sentimenken_data.csv"}
+        )
+    finally:
+        cursor.close()
+        conn.close()
 
 # Fungsi scraping artikel
 
