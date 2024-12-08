@@ -1,0 +1,14 @@
+[project]
+name = "sentiment-dashboard"
+version = "0.1.0"
+description = "SUN Sentiment Dashboard by Institut Teknologi Sepuluh Nopember"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.1.0",
+    "beautifulsoup4>=4.12.3",
+    "vadersentiment>=3.3.2",
+    "requests>=2.32.3",
+    "mysqlclient>=2.2.6",
+    "sastrawi>=1.0.1",
+]
