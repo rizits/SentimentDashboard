@@ -11,4 +11,6 @@ dependencies = [
     "requests>=2.32.3",
     "mysqlclient>=2.2.6",
     "sastrawi>=1.0.1",
+    "pandas>=2.2.3",
+    "nltk>=3.9.1",
 ]

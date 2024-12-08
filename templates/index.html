@@ -192,6 +192,10 @@
                                             <img src="{{ url_for('static', filename='images/bbc.png') }}" alt="BBC Logo" class="item-icon">
                                             BBC
                                         </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/businesstimes.png') }}" data-value="businesstimes">
+                                            <img src="{{ url_for('static', filename='images/businesstimes.png') }}" alt="Businesstimes Logo" class="item-icon">
+                                            Businesstimes.com.sg
+                                        </div>
                                     </div>
                                 </div>
                                 <input type="hidden" id="platform" name="platform" value="kontan">
@@ -211,7 +215,8 @@
                     "viva": "https://viva.com/",
                     "bisnis": "https://bisnis.com/",
                     "katadata": "https://katadata.co.id/",
-                    "bbc": "https://bbc.com/"
+                    "bbc": "https://bbc.com/",
+                    "businesstimes": "https://businesstimes.com.sg/"
                 };
             
                 const dropdown = document.querySelector('.custom-dropdown');
