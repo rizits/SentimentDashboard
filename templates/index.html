@@ -205,8 +205,12 @@
                                             Financial Post
                                         </div>
                                         <div class="dropdown-item" data-img="{{ url_for('static', filename='images/asianinvestor.png') }}" data-value="asianinvestor">
-                                            <img src="{{ url_for('static', filename='images/asianinvestor.png') }}" alt="asianinvestor Logo" class="item-icon">
+                                            <img src="{{ url_for('static', filename='images/asianinvestor.png') }}" alt="Asianinvestor Logo" class="item-icon">
                                             Asian Investor
+                                        </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/businessinsider.png') }}" data-value="businessinsider">
+                                            <img src="{{ url_for('static', filename='images/businessinsider.png') }}" alt="Businessinsider Logo" class="item-icon">
+                                            Business Insider
                                         </div>
                                     </div>
                                 </div>
@@ -232,6 +236,7 @@
                     "straitstimes": "https://straitstimes.com/",
                     "financialpost": "https://financialpost.com/",
                     "asianinvestor": "https://asianinvestor.net/",
+                    "businessinsider": "https://businessinsider.com/"
                 };
             
                 const dropdown = document.querySelector('.custom-dropdown');
