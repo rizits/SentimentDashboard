@@ -340,6 +340,50 @@ def scrape_businessinsider_article(url):
     except requests.RequestException as e:
         logging.error(f"Request error saat scraping {url}: {e}")
         return None, None, None
+    
+def scrape_jpmorgan_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            
+            # article content
+            elements = soup.select(".text .cmp-text")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date_original = soup.select_one('article .date')
+            publish_date = None
+            if publish_date_original:
+                try:
+                    date_text = publish_date_original.get_text(strip=True)
+                    publish_date = datetime.strptime(date_text, "%B %d, %Y").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError):
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
 
 # Platform Nasional
 def convert_indonesian_date(indonesian_date):
@@ -792,7 +836,8 @@ def submit_url():
         "straitstimes": "straitstimes.com",
         "financialpost": "financialpost.com",
         "asianinvestor": "asianinvestor.net",
-        "businessinsider": "businessinsider.com"
+        "businessinsider": "businessinsider.com",
+        "jpmorgan": "jpmorgan.com"
     }
 
     # Validate URL
@@ -833,6 +878,8 @@ def submit_url():
                     title, content, publish_date = scrape_asianinvestor_article(url)
                 elif platform == "businessinsider":
                     title, content, publish_date = scrape_businessinsider_article(url)
+                elif platform == "jpmorgan":
+                    title, content, publish_date = scrape_jpmorgan_article(url)
                 elif platform == "bisnis":
                     title, content, publish_date = scrape_bisnis_article(url)
                 elif platform == "kontan":
