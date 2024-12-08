@@ -423,6 +423,38 @@ def remove_html_tags_and_special_chars(html: str) -> str:
            re.sub(r'</?[^>]+(?:>|$)', '', html     # Remove HTML tags
            )))))))))))))))).strip()
 
+def find_deep_value(obj, key):
+    # Handle JSON string
+    if isinstance(obj, str):
+        try:
+            obj = json.loads(obj)
+        except json.JSONDecodeError:
+            return None
+    
+    # Handle base cases
+    if obj is None or (not isinstance(obj, (dict, list))):
+        return None
+    
+    # Check if key exists in current object (dict case)
+    if isinstance(obj, dict) and key in obj:
+        return obj[key]
+    
+    # Handle list case
+    if isinstance(obj, list):
+        for item in obj:
+            result = find_deep_value(item, key)
+            if result is not None:
+                return result
+    
+    # Handle dict case
+    elif isinstance(obj, dict):
+        for value in obj.values():
+            result = find_deep_value(value, key)
+            if result is not None:
+                return result
+    
+    return None
+
 def scrape_kemenkeu_article(url):
     try:
         # make sure url is of the form https://kemenkeu.go.id/
@@ -460,6 +492,54 @@ def scrape_kemenkeu_article(url):
                     publish_date = None
             else:
                 publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+
+def scrape_djpprkemenkeu_article(url):
+    try:
+        # make sure url is of the form https://djppr.kemenkeu.go.id/
+        if not url.startswith("https://djppr.kemenkeu.go.id/"):
+            logging.error(f"Invalid URL: {url}")
+            return None, None, None
+        
+        # the url looks like this: https://kemenkeu.go.id/informasi-publik/publikasi/berita-utama/Wamenkeu-Anggito-Kemenkeu-Satu-Banten
+        # only get the part after https://kemenkeu.go.id
+        important_part = url.split("djppr.kemenkeu.go.id/")[1]
+
+        modified_url = f"https://api-djppr.kemenkeu.go.id/web/api/v1/page?url={important_part}"
+
+        response = requests.get(modified_url, timeout=10)
+        if response.status_code == 200:
+            json_response = response.json()
+
+            # title
+            title = find_deep_value(json_response, '@Judul') if json_response else 'No title available'
+
+            # article content
+            content = remove_html_tags_and_special_chars(
+                find_deep_value(json_response, '@Konten') if json_response else "No content available"
+            )
+
+            # publish date
+            publish_date_original = find_deep_value(json_response, '@Tanggal') if json_response else None
+            publish_date = None
+            if publish_date_original:
+                try:
+                    publish_date = datetime.strptime(convert_indonesian_date(publish_date_original), "%d %B %Y").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError, IndexError) as e:
+                    logging.error(f"Error parsing date: {publish_date_original} -> {e}")
+                    publish_date = None
+            else:
+                publish_date = None
+
+            
 
 
             return title, content, publish_date
@@ -986,7 +1066,8 @@ def submit_url():
         "asianinvestor": "asianinvestor.net",
         "businessinsider": "businessinsider.com",
         "jpmorgan": "jpmorgan.com",
-        "kemenkeu": "kemenkeu.go.id"
+        "kemenkeu": "kemenkeu.go.id",
+        "djpprkemenkeu": "djppr.kemenkeu.go.id"
     }
 
     # Validate URL
@@ -1041,6 +1122,8 @@ def submit_url():
                     title, content, publish_date = scrape_katadata_article(url)
                 elif platform == "kemenkeu":
                     title, content, publish_date = scrape_kemenkeu_article(url)
+                elif platform == "djpprkemenkeu":
+                    title, content, publish_date = scrape_djpprkemenkeu_article(url)
                 else:
                     flash('Scraping untuk platform ini belum didukung.', 'warning')
                     return redirect(url_for('index'))
