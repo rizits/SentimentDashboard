@@ -204,6 +204,10 @@
                                             <img src="{{ url_for('static', filename='images/financialpost.png') }}" alt="Financialpost Logo" class="item-icon">
                                             Financial Post
                                         </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/asianinvestor.png') }}" data-value="asianinvestor">
+                                            <img src="{{ url_for('static', filename='images/asianinvestor.png') }}" alt="asianinvestor Logo" class="item-icon">
+                                            Asian Investor
+                                        </div>
                                     </div>
                                 </div>
                                 <input type="hidden" id="platform" name="platform" value="kontan">
@@ -227,6 +231,7 @@
                     "businesstimes": "https://businesstimes.com.sg/",
                     "straitstimes": "https://straitstimes.com/",
                     "financialpost": "https://financialpost.com/",
+                    "asianinvestor": "https://asianinvestor.net/",
                 };
             
                 const dropdown = document.querySelector('.custom-dropdown');

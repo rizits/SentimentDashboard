@@ -139,7 +139,7 @@ def scrape_straitstimes_article(url):
             soup = BeautifulSoup(response.content, 'html.parser')
             # title
             title = soup.find('title').get_text() if soup.find('title') else 'No title available'
-            title = title.replace(' | The Straits Times', '')
+            title = title.split(' | ')[0] if ' | ' in title else title
             
             elements = soup.select(".layout.layout--onecol p, "
                       ".layout.layout--onecol h1, "
@@ -235,6 +235,57 @@ def scrape_financialpost_article(url):
                         publish_date = date_str.split('T')[0]
                 except (ValueError, AttributeError, json.JSONDecodeError):
                     publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+    
+def scrape_asianinvestor_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            title = title.split(' | ')[0] if ' | ' in title else title
+            
+            # article content
+            elements = soup.select(".tw-prose p:not(.visually-hidden), "
+                      ".tw-prose h1:not(.visually-hidden), "
+                      ".tw-prose h2:not(.visually-hidden), "
+                      ".tw-prose h3:not(.visually-hidden), "
+                      ".tw-prose h4:not(.visually-hidden), "
+                      ".tw-prose h5:not(.visually-hidden), "
+                      ".tw-prose h6:not(.visually-hidden)")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date = None
+            publish_datetime = soup.select_one('meta[property="article:published_time"]')
+            if publish_datetime:
+                try:
+                    date_str = publish_datetime.get('content')
+                    publish_date = date_str.split('T')[0]
+                except (ValueError, AttributeError):
+                    publish_date = None
+            else:
+                publish_date = None
 
 
             return title, content, publish_date
@@ -694,7 +745,8 @@ def submit_url():
         "bbc": "bbc.com",
         "businesstimes": "businesstimes.com.sg",
         "straitstimes": "straitstimes.com",
-        "financialpost": "financialpost.com"
+        "financialpost": "financialpost.com",
+        "asianinvestor": "asianinvestor.net"
     }
 
     # Validate URL
@@ -731,6 +783,8 @@ def submit_url():
                     title, content, publish_date = scrape_straitstimes_article(url)
                 elif platform == "financialpost":
                     title, content, publish_date = scrape_financialpost_article(url)
+                elif platform == "asianinvestor":
+                    title, content, publish_date = scrape_asianinvestor_article(url)
                 elif platform == "bisnis":
                     title, content, publish_date = scrape_bisnis_article(url)
                 elif platform == "kontan":
