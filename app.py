@@ -180,7 +180,7 @@ def scrape_straitstimes_article(url):
             soup = BeautifulSoup(response.content, 'html.parser')
             # title
             title = soup.find('title').get_text() if soup.find('title') else 'No title available'
-            title = title.replace(' | The Straits Times', '')
+            title = title.split(' | ')[0] if ' | ' in title else title
             
             elements = soup.select(".layout.layout--onecol p, "
                       ".layout.layout--onecol h1, "
@@ -285,6 +285,146 @@ def scrape_financialpost_article(url):
     except requests.RequestException as e:
         logging.error(f"Request error saat scraping {url}: {e}")
         return None, None, None
+    
+def scrape_asianinvestor_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            title = title.split(' | ')[0] if ' | ' in title else title
+            
+            # article content
+            elements = soup.select(".tw-prose p:not(.visually-hidden), "
+                      ".tw-prose h1:not(.visually-hidden), "
+                      ".tw-prose h2:not(.visually-hidden), "
+                      ".tw-prose h3:not(.visually-hidden), "
+                      ".tw-prose h4:not(.visually-hidden), "
+                      ".tw-prose h5:not(.visually-hidden), "
+                      ".tw-prose h6:not(.visually-hidden)")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date = None
+            publish_datetime = soup.select_one('meta[property="article:published_time"]')
+            if publish_datetime:
+                try:
+                    date_str = publish_datetime.get('content')
+                    publish_date = date_str.split('T')[0]
+                except (ValueError, AttributeError):
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+    
+def scrape_businessinsider_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            title = title.split(' - Markets Insider')[0] if ' - Markets Insider' in title else title
+            
+            # article content
+            elements = soup.select(".slide-title-text, section p")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date = None
+            publish_datetime = soup.select_one('meta[name="datePublished"]')
+            if publish_datetime:
+                try:
+                    date_str = publish_datetime.get('content')
+                    publish_date = date_str.split('T')[0]
+                except (ValueError, AttributeError):
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+    
+def scrape_jpmorgan_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            
+            # article content
+            elements = soup.select(".text .cmp-text")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date_original = soup.select_one('article .date')
+            publish_date = None
+            if publish_date_original:
+                try:
+                    date_text = publish_date_original.get_text(strip=True)
+                    publish_date = datetime.strptime(date_text, "%B %d, %Y").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError):
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
 
 # Platform Nasional
 def convert_indonesian_date(indonesian_date):
@@ -305,6 +445,254 @@ def remove_day_name(indonesian_date):
         if day in indonesian_date:
             return indonesian_date.replace(day + ",", "").strip()
     return indonesian_date
+
+def remove_html_tags_and_special_chars(html: str) -> str:
+    return (re.sub(r'\s+', ' ',                    # Replace multiple whitespaces with single space
+           re.sub(r'&#160;', ' ',                  # Replace &#160; with space
+           re.sub(r'&amp;', '&',                   # Replace &amp; with &
+           re.sub(r'&gt;', '>',                    # Replace &gt; with >
+           re.sub(r'&lt;', '<',                    # Replace &lt; with <
+           re.sub(r'&quot;', '',                   # Remove &quot;
+           re.sub(r'&nbsp;', ' ',                  # Replace &nbsp; with space
+           re.sub(r'&amp;', '&',                   # Replace &amp; with &
+           re.sub(r'&lsquo;', '',                  # Remove &lsquo;
+           re.sub(r'&rsquo;', '',                  # Remove &rsquo;
+           re.sub(r'&ldquo;', '',                  # Remove &ldquo;
+           re.sub(r'&rdquo;', '',                  # Remove &rdquo;
+           re.sub(r'[\r\n\u2028\u2029\v\f"]', ' ', # Remove line breaks and quotes
+           re.sub(r'<[^>]+>', '',                  # Remove HTML tags
+           re.sub(r'</?[^>]+(?:>|$)', '', html     # Remove HTML tags
+           )))))))))))))))).strip()
+
+def find_deep_value(obj, key):
+    # Handle JSON string
+    if isinstance(obj, str):
+        try:
+            obj = json.loads(obj)
+        except json.JSONDecodeError:
+            return None
+    
+    # Handle base cases
+    if obj is None or (not isinstance(obj, (dict, list))):
+        return None
+    
+    # Check if key exists in current object (dict case)
+    if isinstance(obj, dict) and key in obj:
+        return obj[key]
+    
+    # Handle list case
+    if isinstance(obj, list):
+        for item in obj:
+            result = find_deep_value(item, key)
+            if result is not None:
+                return result
+    
+    # Handle dict case
+    elif isinstance(obj, dict):
+        for value in obj.values():
+            result = find_deep_value(value, key)
+            if result is not None:
+                return result
+    
+    return None
+
+def scrape_kemenkeu_article(url):
+    try:
+        # make sure url is of the form https://kemenkeu.go.id/
+        if not url.startswith("https://kemenkeu.go.id/"):
+            logging.error(f"Invalid URL: {url}")
+            return None, None, None
+        
+        # the url looks like this: https://kemenkeu.go.id/informasi-publik/publikasi/berita-utama/Wamenkeu-Anggito-Kemenkeu-Satu-Banten
+        # only get the part after https://kemenkeu.go.id
+        important_part = url.split("kemenkeu.go.id")[1]
+
+        modified_url = f"https://media.kemenkeu.go.id/SinglePage/DetailPage?p=/Pages{important_part}&lang=id" 
+
+        response = requests.get(modified_url, timeout=10)
+        if response.status_code == 200:
+            json_response = response.json()
+
+            # title
+            title = json_response['Data']['Title'] if 'Data' in json_response and 'Title' in json_response['Data'] else 'No title available'
+            
+            # article content
+            content = remove_html_tags_and_special_chars(
+                remove_html_tags_and_special_chars(
+                    json_response['Data']['Description']
+                )) if 'Data' in json_response and 'Description' in json_response['Data'] else "No content available"
+            
+            # publish date
+            publish_date_original = json_response['Data']['DocumentCreatedWhen'] if 'Data' in json_response and 'DocumentCreatedWhen' in json_response['Data'] else None
+            publish_date = None
+            if publish_date_original:
+                try:
+                    publish_date = datetime.strptime(publish_date_original, "%A, %d %B %Y %H:%M").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError, IndexError) as e:
+                    logging.error(f"Error parsing date: {publish_date_original} -> {e}")
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+
+def scrape_djpprkemenkeu_article(url):
+    try:
+        # make sure url is of the form https://djppr.kemenkeu.go.id/
+        if not url.startswith("https://djppr.kemenkeu.go.id/"):
+            logging.error(f"Invalid URL: {url}")
+            return None, None, None
+        
+        # the url looks like this: https://kemenkeu.go.id/informasi-publik/publikasi/berita-utama/Wamenkeu-Anggito-Kemenkeu-Satu-Banten
+        # only get the part after https://kemenkeu.go.id
+        important_part = url.split("djppr.kemenkeu.go.id/")[1]
+
+        modified_url = f"https://api-djppr.kemenkeu.go.id/web/api/v1/page?url={important_part}"
+
+        response = requests.get(modified_url, timeout=10)
+        if response.status_code == 200:
+            json_response = response.json()
+
+            # title
+            title = find_deep_value(json_response, '@Judul') if json_response else 'No title available'
+
+            # article content
+            content = remove_html_tags_and_special_chars(
+                find_deep_value(json_response, '@Konten') if json_response else "No content available"
+            )
+
+            # publish date
+            publish_date_original = find_deep_value(json_response, '@Tanggal') if json_response else None
+            publish_date = None
+            if publish_date_original:
+                try:
+                    publish_date = datetime.strptime(convert_indonesian_date(publish_date_original), "%d %B %Y").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError, IndexError) as e:
+                    logging.error(f"Error parsing date: {publish_date_original} -> {e}")
+                    publish_date = None
+            else:
+                publish_date = None
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+    
+def scrape_mandirisekuritas_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            
+            # article content
+            elements = soup.select(".article__body p:not(.visually-hidden), "
+                    ".article__body h1:not(.visually-hidden), "
+                    ".article__body h2:not(.visually-hidden), "
+                    ".article__body h3:not(.visually-hidden), "
+                    ".article__body h4:not(.visually-hidden), "
+                    ".article__body h5:not(.visually-hidden), "
+                    ".article__body h6:not(.visually-hidden)")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            date_div = soup.find('div', class_='published-date')
+            date_text = date_div.get_text().split('•')[0].strip()
+            
+            # Month mapping (Indonesian)
+            month_map = {
+                'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+                'Mei': 5, 'Jun': 6, 'Jul': 7, 'Agu': 8,
+                'Sep': 9, 'Okt': 10, 'Nov': 11, 'Des': 12
+            }
+            
+            # Parse date components
+            month_str, day_str, year_str = date_text.split()
+            month = month_map[month_str]
+            day = int(day_str.replace(',', ''))
+            year = int(year_str)
+            
+            # Create datetime and format
+            date_obj = datetime(year, month, day)
+            publish_date = date_obj.strftime('%Y-%m-%d')
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
+    
+def scrape_bloombergtechnoz_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = soup.find('title').get_text() if soup.find('title') else 'No title available'
+            title = title.split(' - ')[0] if ' - ' in title else title
+            
+            # article content
+            elements = soup.select(".article p")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date_original = soup.select_one('.text-sumber .margin-bottom-no')
+            publish_date = None
+            if publish_date_original:
+                try:
+                    date_text = publish_date_original.get_text(strip=True)
+                    # Split date and time, only keep the date part
+                    date_part = date_text.split(" ", 3)[:3]  # Get first 3 parts: day, month, year
+                    date_text = " ".join(date_part)
+                    publish_date = datetime.strptime(date_text, "%d %B %Y").strftime("%Y-%m-%d")
+                except (ValueError, AttributeError):
+                    publish_date = None
+            else:
+                publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
 
 def scrape_bisnis_article(url):
     try:
@@ -818,7 +1206,14 @@ def submit_url():
         "bbc": "bbc.com",
         "businesstimes": "businesstimes.com.sg",
         "straitstimes": "straitstimes.com",
-        "financialpost": "financialpost.com"
+        "financialpost": "financialpost.com",
+        "asianinvestor": "asianinvestor.net",
+        "businessinsider": "businessinsider.com",
+        "jpmorgan": "jpmorgan.com",
+        "kemenkeu": "kemenkeu.go.id",
+        "djpprkemenkeu": "djppr.kemenkeu.go.id",
+        "bloombergtechnoz": "bloombergtechnoz.com",
+        "mandirisekuritas": "mandirisekuritas.co.id"
     }
 
     # Validate URL
@@ -855,6 +1250,12 @@ def submit_url():
                     title, content, publish_date = scrape_straitstimes_article(url)
                 elif platform == "financialpost":
                     title, content, publish_date = scrape_financialpost_article(url)
+                elif platform == "asianinvestor":
+                    title, content, publish_date = scrape_asianinvestor_article(url)
+                elif platform == "businessinsider":
+                    title, content, publish_date = scrape_businessinsider_article(url)
+                elif platform == "jpmorgan":
+                    title, content, publish_date = scrape_jpmorgan_article(url)
                 elif platform == "bisnis":
                     title, content, publish_date = scrape_bisnis_article(url)
                 elif platform == "kontan":
@@ -865,6 +1266,14 @@ def submit_url():
                     title, publish_date, content = scrape_viva_article(url)
                 elif platform == "katadata":
                     title, content, publish_date = scrape_katadata_article(url)
+                elif platform == "kemenkeu":
+                    title, content, publish_date = scrape_kemenkeu_article(url)
+                elif platform == "djpprkemenkeu":
+                    title, content, publish_date = scrape_djpprkemenkeu_article(url)
+                elif platform == "bloombergtechnoz":
+                    title, content, publish_date = scrape_bloombergtechnoz_article(url)
+                elif platform == "mandirisekuritas":
+                    title, content, publish_date = scrape_mandirisekuritas_article(url)
                 else:
                     flash('Scraping untuk platform ini belum didukung.', 'warning')
                     return redirect(url_for('index'))
