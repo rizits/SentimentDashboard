@@ -186,6 +186,64 @@ def scrape_straitstimes_article(url):
     except requests.RequestException as e:
         logging.error(f"Request error saat scraping {url}: {e}")
         return None, None, None
+    
+def scrape_financialpost_article(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # title
+            title = None
+            title_meta_tag = soup.select_one('meta[property="og:title"]')
+            if title_meta_tag:
+                try:
+                    title = title_meta_tag.get('content')
+                except (ValueError, AttributeError):
+                    title = None
+            else:
+                title = None
+            
+            # article content
+            elements = soup.select(".article-content__content-group p:not(.visually-hidden), "
+                      ".article-content__content-group h1:not(.visually-hidden), "
+                      ".article-content__content-group h2:not(.visually-hidden), "
+                      ".article-content__content-group h3:not(.visually-hidden), "
+                      ".article-content__content-group h4:not(.visually-hidden), "
+                      ".article-content__content-group h5:not(.visually-hidden), "
+                      ".article-content__content-group h6:not(.visually-hidden)")
+    
+            # Process each element similar to the jQuery map function
+            article_texts = []
+            for element in elements:
+                # Get text, trim whitespace, remove newlines/tabs, and convert to lowercase
+                cleaned_text = element.get_text().strip()
+                cleaned_text = ' '.join(cleaned_text.split())  # Removes \r\n\t and excessive spaces
+                cleaned_text = cleaned_text.lower()
+                article_texts.append(cleaned_text)
+            
+            # Join all texts with space
+            content = ' '.join(article_texts)
+            
+            # publish date
+            publish_date = None
+            json_ld = soup.select_one('script[type="application/ld+json"]')
+            if json_ld:
+                try:
+                    json_data = json.loads(json_ld.string)
+                    date_str = json_data.get('datePublished')
+                    if date_str:
+                        publish_date = date_str.split('T')[0]
+                except (ValueError, AttributeError, json.JSONDecodeError):
+                    publish_date = None
+
+
+            return title, content, publish_date
+        else:
+            logging.error(f"Failed to fetch URL {url} with status code {response.status_code}")
+            return None, None, None
+    except requests.RequestException as e:
+        logging.error(f"Request error saat scraping {url}: {e}")
+        return None, None, None
 
 # Platform Nasional
 def convert_indonesian_date(indonesian_date):
@@ -635,7 +693,8 @@ def submit_url():
         "katadata": "katadata.co.id",
         "bbc": "bbc.com",
         "businesstimes": "businesstimes.com.sg",
-        "straitstimes": "straitstimes.com"
+        "straitstimes": "straitstimes.com",
+        "financialpost": "financialpost.com"
     }
 
     # Validate URL
@@ -670,6 +729,8 @@ def submit_url():
                     title, content, publish_date = scrape_businesstimes_article(url)
                 elif platform == "straitstimes":
                     title, content, publish_date = scrape_straitstimes_article(url)
+                elif platform == "financialpost":
+                    title, content, publish_date = scrape_financialpost_article(url)
                 elif platform == "bisnis":
                     title, content, publish_date = scrape_bisnis_article(url)
                 elif platform == "kontan":

@@ -200,6 +200,10 @@
                                             <img src="{{ url_for('static', filename='images/straitstimes.png') }}" alt="Straitstimes Logo" class="item-icon">
                                             The Strait Times
                                         </div>
+                                        <div class="dropdown-item" data-img="{{ url_for('static', filename='images/financialpost.png') }}" data-value="financialpost">
+                                            <img src="{{ url_for('static', filename='images/financialpost.png') }}" alt="Financialpost Logo" class="item-icon">
+                                            Financial Post
+                                        </div>
                                     </div>
                                 </div>
                                 <input type="hidden" id="platform" name="platform" value="kontan">
@@ -222,6 +226,7 @@
                     "bbc": "https://bbc.com/",
                     "businesstimes": "https://businesstimes.com.sg/",
                     "straitstimes": "https://straitstimes.com/",
+                    "financialpost": "https://financialpost.com/",
                 };
             
                 const dropdown = document.querySelector('.custom-dropdown');
