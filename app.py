@@ -1068,7 +1068,7 @@ def index():
 
     except Exception as e:
         logging.error(f"Error in index route: {e}")
-        flash('Terjadi kesalahan saat mengambil data.', 'danger')
+        flash('An error occurred while processing the request.', 'danger')
         return render_template(
             'index.html',
             page="dashboard",
@@ -1096,10 +1096,10 @@ def delete_news(news_id):
             conn.commit()
 
         conn.close()
-        flash('Berita berhasil dihapus.', 'success')
+        flash('News successfully deleted.', 'success')
     except Exception as e:
         logging.error(f"Error deleting news: {e}")
-        flash('Terjadi kesalahan saat menghapus berita.', 'danger')
+        flash('An error occurred while processing the request.', 'danger')
 
     return redirect(url_for('index', page='data_management'))
 
@@ -1117,10 +1117,10 @@ def delete_yield(yield_id):
             conn.commit()
 
         conn.close()
-        flash('Data yield berhasil dihapus.', 'success')
+        flash('Yield data successfully deleted.', 'success')
     except Exception as e:
         logging.error(f"Error deleting yield: {e}")
-        flash('Terjadi kesalahan saat menghapus data yield.', 'danger')
+        flash('An error occurred while processing the request.', 'danger')
 
     return redirect(url_for('index', page='data_management'))
 
@@ -1223,13 +1223,13 @@ def submit_url():
 
     parsed_url = urlparse(url)
     if not parsed_url.netloc or platform_domains.get(platform) not in parsed_url.netloc:
-        flash('URL tidak valid atau tidak sesuai dengan platform yang dipilih.', 'danger')
+        flash('Invalid URL or the URL does not match the selected platform.', 'danger')
         return redirect(url_for('index'))
 
     # Database connection
     conn = connect_db()
     if conn is None:
-        flash('Koneksi database gagal.', 'danger')
+        flash('Database connection failed.', 'danger')
         return redirect(url_for('index'))
 
     try:
@@ -1279,27 +1279,27 @@ def submit_url():
                     return redirect(url_for('index'))
             except Exception as e:
                 logging.error(f"Error during scraping: {e}")
-                flash('Terjadi kesalahan saat proses scraping. Periksa kembali URL atau platform.', 'danger')
+                flash('An error occurred while processing the request.', 'danger')
                 return redirect(url_for('index'))
 
             # Validate scraping results
             if not title or not content or not publish_date:
-                flash('Data tidak valid. Periksa kembali URL-nya.', 'danger')
+                flash('Invalid data. Please check the URL.', 'danger')
                 logging.warning(f"Scraped data is invalid: title={title}, content={content}, publish_date={publish_date}")
                 return redirect(url_for('index'))
 
             # Save to database
             try:
                 save_raw_to_db(url, title, content, publish_date)
-                flash('Berita berhasil di-scrape dan disimpan ke database.', 'success')
+                flash('Article successfully scraped and saved to the database.', 'success')
                 logging.info(f"Data berhasil disimpan: URL={url}")
             except Exception as e:
                 logging.error(f"Error saat menyimpan data ke database: {e}")
-                flash('Gagal menyimpan data ke database.', 'danger')
+                flash('Failed to save data to the database.', 'danger')
 
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
-        flash(f'Terjadi kesalahan: {e}', 'danger')
+        flash(f'An error occurred: {e}', 'danger')
     finally:
         conn.close()
 
