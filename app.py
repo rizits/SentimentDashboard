@@ -982,7 +982,7 @@ def index():
         # Connect to the database
         conn = connect_db()
         if conn is None:
-            flash('Koneksi database gagal.', 'danger')
+            flash('Database connection failed.', 'danger')
             return render_template(
                 'index.html',
                 page="dashboard",
@@ -1088,7 +1088,7 @@ def delete_news(news_id):
     try:
         conn = connect_db()
         if conn is None:
-            flash('Koneksi database gagal.', 'danger')
+            flash('Database connection failed.', 'danger')
             return redirect(url_for('index', page='data_management'))
 
         with conn.cursor() as cursor:
@@ -1109,7 +1109,7 @@ def delete_yield(yield_id):
     try:
         conn = connect_db()
         if conn is None:
-            flash('Koneksi database gagal.', 'danger')
+            flash('Database connection failed.', 'danger')
             return redirect(url_for('index', page='data_management'))
 
         with conn.cursor() as cursor:
@@ -1218,7 +1218,7 @@ def submit_url():
 
     # Validate URL
     if not url:
-        flash('URL tidak boleh kosong.', 'danger')
+        flash('The URL cannot be empty.', 'danger')
         return redirect(url_for('index'))
 
     parsed_url = urlparse(url)
@@ -1237,7 +1237,7 @@ def submit_url():
             # Check if URL already exists in the database
             cursor.execute("SELECT COUNT(*) FROM news WHERE url = %s", (url,))
             if cursor.fetchone()[0] > 0:
-                flash('URL artikel sudah ada di database.', 'warning')
+                flash('The article URL already exists in the database.', 'warning')
                 return redirect(url_for('index'))
 
             # Perform scraping based on platform
@@ -1275,7 +1275,7 @@ def submit_url():
                 elif platform == "mandirisekuritas":
                     title, content, publish_date = scrape_mandirisekuritas_article(url)
                 else:
-                    flash('Scraping untuk platform ini belum didukung.', 'warning')
+                    flash('Scraping for this platform is not yet supported.', 'warning')
                     return redirect(url_for('index'))
             except Exception as e:
                 logging.error(f"Error during scraping: {e}")
@@ -1473,7 +1473,7 @@ def view_analytics():
         try:
             with connect_db() as conn:
                 if conn is None:
-                    flash('Koneksi database gagal.', 'danger')
+                    flash('Database connection failed.', 'danger')
                     return redirect(url_for('view_analytics'))
 
                 with conn.cursor() as cursor:
@@ -1544,23 +1544,23 @@ def view_analytics():
                         # Simpan semua perubahan ke database
                         conn.commit()
                         logging.info("Komit perubahan ke database berhasil.")
-                        flash('Analisis sentimen berhasil dilakukan!', 'success')
+                        flash('Sentiment analysis completed successfully!', 'success')
                     else:
                         logging.info("Tidak ada data baru untuk dianalisis.")
-                        flash('Tidak ada data baru untuk dianalisis.', 'info')
+                        flash('No new data available for analysis.', 'info')
 
             return redirect(url_for('view_analytics'))
 
         except Exception as e:
             logging.error(f"Error di view_analytics: {e}")
-            flash('Terjadi kesalahan saat memproses data.', 'danger')
+            flash('An error occurred while processing the data.', 'danger')
             return redirect(url_for('view_analytics'))
 
     else:  # GET request
         try:
             with connect_db() as conn:
                 if conn is None:
-                    flash('Koneksi database gagal.', 'danger')
+                    flash('Database connection failed.', 'danger')
                     return render_template('index.html', sentiment_data=[], page="analytics")
                 with conn.cursor() as cursor:
                     # Ambil semua data dari database untuk ditampilkan di tabel
@@ -1576,7 +1576,7 @@ def view_analytics():
             return render_template('index.html', sentiment_data=sentiment_data, page="analytics")
         except Exception as e:
             logging.error(f"Error mengambil data untuk ditampilkan: {e}")
-            flash('Terjadi kesalahan saat mengambil data.', 'danger')
+            flash('An error occurred while fetching the data.', 'danger')
             return render_template('index.html', sentiment_data=[], page="analytics")
 
 # Chart Sentimen
@@ -1628,7 +1628,7 @@ def view_news():
     try:
         with connect_db() as conn:
             if conn is None:
-                flash('Koneksi database gagal.', 'danger')
+                flash('Database connection failed.', 'danger')
                 return render_template('news.html', news_data=[])
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM news ORDER BY input_date DESC")
@@ -1636,7 +1636,7 @@ def view_news():
         return render_template('news.html', news_data=news_data)
     except Exception as e:
         logging.exception("Terjadi error di route view_news:")
-        flash('Terjadi kesalahan saat mengambil data.', 'danger')
+        flash('An error occurred while retrieving the data.', 'danger')
         return render_template('news.html', news_data=[])
 
 # Data Management
