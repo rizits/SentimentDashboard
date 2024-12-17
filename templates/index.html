@@ -148,7 +148,7 @@
                 <li>
                     <i class='bx bx-dollar-circle'></i>
                     <span class="info">
-                        <h3>{{ yield_today }}%</h3>
+                        <h3>{{ yield_today }}</h3>
                         <p>Yield Today</p>
                     </span>
                 </li>
@@ -705,12 +705,16 @@
             <div class="regression-container">
                 <div class="header">
                     <h3>Regression Model Calculator</h3>
-                    <p class="model-equation">Yield_movement = -0.01939 - 0.0920 Polarity + 0.000001 Kurs</p>
+                    <p class="model-equation">Yield_movement = -0.01451 - 0.0671 Polarity + 0.2666 Yield_movement_Lag1 + 0.000001 Kurs</p>
                 </div>
                 <div class="input-container side-by-side">
                     <div class="input-group">
                         <label for="polarity">Polarity:</label>
                         <input type="number" id="polarity" name="polarity" step="0.0001" placeholder="Enter Polarity Value">
+                    </div>
+                    <div class="input-group">
+                        <label for="yield_lag1">Yield Movement Lag1:</label>
+                        <input type="number" id="yield_lag1" name="yield_lag1" step="0.0001" placeholder="Enter Yield Movement Lag1 Value">
                     </div>
                     <div class="input-group">
                         <label for="kurs">Kurs:</label>
@@ -723,18 +727,24 @@
 
             <script>
                 document.getElementById('calculate-model').addEventListener('click', function () {
+                    // Ambil nilai input
                     const polarity = parseFloat(document.getElementById('polarity').value) || 0;
+                    const yieldLag1 = parseFloat(document.getElementById('yield_lag1').value) || 0;
                     const kurs = parseFloat(document.getElementById('kurs').value) || 0;
-            
-                    // Regression coefficients
-                    const intercept = -0.01939;
-                    const polarityCoeff = -0.0920;
+
+                    // Koefisien regresi baru
+                    const intercept = -0.01451;
+                    const polarityCoeff = -0.0671;
+                    const yieldLag1Coeff = 0.2666;
                     const kursCoeff = 0.000001;
-            
-                    // Calculate yield movement
-                    const yieldMovement = intercept + (polarityCoeff * polarity) + (kursCoeff * kurs);
-            
-                    // Display result
+
+                    // Hitung yield movement berdasarkan model baru
+                    const yieldMovement = intercept 
+                                        + (polarityCoeff * polarity) 
+                                        + (yieldLag1Coeff * yieldLag1) 
+                                        + (kursCoeff * kurs);
+
+                    // Tampilkan hasil dengan 5 desimal
                     document.getElementById('yield-model-result').textContent = yieldMovement.toFixed(5);
                 });
             </script>             

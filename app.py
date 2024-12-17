@@ -1038,7 +1038,7 @@ def index():
 
                 # Fetch today's yield percentage
                 yield_today = get_yield_today()
-                yield_today_percentage = yield_today * 100 if yield_today is not None else 0.0
+                yield_today_percentage = yield_today if yield_today is not None else 0.0
                 yield_today = f"{yield_today_percentage:.2f}"
 
             elif page == "data_management":
