@@ -1043,11 +1043,11 @@ def index():
 
             elif page == "data_management":
                 # Fetch all news data for data management
-                cursor.execute("SELECT id, title, publish_date, content FROM news ORDER BY id DESC")
+                cursor.execute("SELECT id, title, publish_date, content FROM news ORDER BY publish_date DESC")
                 news_data = cursor.fetchall()
 
                 # Fetch all yield data for data management
-                cursor.execute("SELECT id, yield_date, yield_value FROM yields ORDER BY id DESC")
+                cursor.execute("SELECT id, yield_date, yield_value FROM yields ORDER BY yield_date DESC")
                 yield_data = cursor.fetchall()
 
         conn.close()
