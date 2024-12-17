@@ -1087,21 +1087,22 @@ def index():
 def delete_news(news_id):
     try:
         conn = connect_db()
-        if conn is None:
-            flash('Database connection failed.', 'danger')
-            return redirect(url_for('index', page='data_management'))
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM news WHERE id = %s", (news_id,))
+                conn.commit()
 
-        with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM news WHERE id = %s", (news_id,))
-            conn.commit()
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id, title, publish_date, content FROM news ORDER BY publish_date DESC")
+                news_data = cursor.fetchall()
 
-        conn.close()
-        flash('News successfully deleted.', 'success')
+            conn.close()
+
+        return render_template('index.html', page='data_management', news_data=news_data)
     except Exception as e:
         logging.error(f"Error deleting news: {e}")
         flash('An error occurred while processing the request.', 'danger')
-
-    return redirect(url_for('index', page='data_management'))
+        return redirect(url_for('index', page='data_management'))
 
 
 @app.route('/delete_yield/<int:yield_id>', methods=['POST'])
